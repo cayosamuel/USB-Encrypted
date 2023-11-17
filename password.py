@@ -64,6 +64,7 @@ try:
         try:
             with open('key.key', 'wb') as file:
                 file.write(stored_key)
+                print('Key is stored in key.key file.')
         except IOError:
             print("Error: Could not write to key file.")
             exit(1)
