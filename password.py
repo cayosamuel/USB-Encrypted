@@ -4,43 +4,49 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.fernet import Fernet
 
-# Get the directory of the script
-scrip_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Get the paths of the key and password files
-key_file = os.path.join(scrip_dir, 'key.key')
-password_file = os.path.join(scrip_dir, 'password.txt')
-
-try:
-    # Ask the user to enter a password
-    password = input('Set a password: ')
-
-    # Generate a salt and hash the password
-    salt = bcrypt.gensalt()
-    salt_length = len(salt)
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
-
-    # Store the hashed password and salt in a file
+# Function to write the hashed password and salt to a file
+def write_password_file(salt_length, salt, hashed_password, password_file_path):
     try:
-        with open('password.txt', 'wb') as file:
-            file.write(salt_length.to_bytes(1,'big')+salt+hashed_password)  # Store the salt along with the hashed password
+        with open(password_file_path, 'wb') as file:
+            file.write(salt_length.to_bytes(1, 'big') + salt + hashed_password)
     except IOError:
         print("Error: Could not write to password file.")
         exit(1)
 
-    # Retrieve the stored salt and password from the file
-    stored_salt_length = 0
-    stored_salt = b''
-    stored_password = b''
+# Function to read the hashed password and salt from a file
+def read_password_file(password_file_path):
     try:
-        with open('password.txt', 'rb') as file:
+        with open(password_file_path, 'rb') as file:
             stored_data = file.read()
-            stored_salt_length = int.from_bytes(stored_data[:1], 'big')  # Extract the salt length from the stored data
-            stored_salt = stored_data[1:1+stored_salt_length]  # Extract the salt from the stored data
-            stored_password = stored_data[1+stored_salt_length:]  # Extract the hashed password from the stored data
+            stored_salt_length = int.from_bytes(stored_data[:1], 'big')
+            stored_salt = stored_data[1:1+stored_salt_length]
+            stored_password = stored_data[1+stored_salt_length:]
+            return stored_salt_length, stored_salt, stored_password
     except IOError:
         print("Error: Could not read from password file.")
         exit(1)
+
+# Main script logic
+try:
+    # Get the directory of the script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Get the paths of the key and password files
+    key_file = os.path.join(script_dir, 'key.key')
+    password_file = os.path.join(script_dir, 'password.txt')
+
+    # Ask the user to enter a password
+    password_input = input('Set a password: ')
+
+    # Generate a salt and hash the password
+    salt = bcrypt.gensalt()
+    salt_length = len(salt)
+    hashed_password = bcrypt.hashpw(password_input.encode(), salt)
+
+    # Write the hashed password and salt to a file
+    write_password_file(salt, salt_length, hashed_password, password_file)
+
+    # Read the stored salt and password from the file
+    stored_salt_length, stored_salt, stored_password = read_password_file(password_file)
 
     # Ask the user to enter the password again
     entered_password = input('Enter password: ')
@@ -62,7 +68,7 @@ try:
         # Store the key and key_salt in a file
         stored_key = key_salt + key
         try:
-            with open('key.key', 'wb') as file:
+            with open(key_file, 'wb') as file:
                 file.write(stored_key)
                 print('Key is stored in key.key file.')
         except IOError:
