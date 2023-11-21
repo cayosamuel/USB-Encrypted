@@ -5,21 +5,11 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import sys
 
-try:
-    # Check if file path is provided
-    if len(sys.argv) < 2:
-        print("Error: No file path provided.")
-        exit(1)
-
-    # Get the file path from command line argument
-    file_path = sys.argv[1]
-
-    # Get the current working directory
+def encrypt_file(file_path):
+    #Get the current working directory
     cwd = os.path.dirname(os.path.abspath(__file__))
-
-    # Build the file paths for key and password
+    # Get the directory for key file
     key_file_path = os.path.join(cwd, 'key.key')
-    password_file_path = os.path.join(cwd, 'password.txt')
 
     # Read the key from the file
     key_data = b''
@@ -27,8 +17,8 @@ try:
         with open(key_file_path, 'rb') as file:
             key_data = file.read()
     except IOError:
-        print("Error: Could not read from key file.")
-        exit(1)
+        raise IOError("Error: Could not read from key file.")
+
 
     # Split the key data into key_salt and key
     key_salt = key_data[:16]
@@ -47,13 +37,11 @@ try:
     encoded_key = base64.urlsafe_b64encode(encryption_key)
 
     # Read the data from the file
-    data = b''
     try:
         with open(file_path, 'rb') as file:
             data = file.read()
     except IOError:
-        print(f"Error: Could not read from file {file_path}.")
-        exit(1)
+        raise IOError(f"Error: Could not read from file {file_path}.")
 
     # Encrypt the data
     fernet_key = Fernet(encoded_key)
@@ -64,8 +52,12 @@ try:
         with open(file_path, 'wb') as file:
             file.write(encrypted_data)
     except IOError:
-        print(f"Error: Could not write to file {file_path}.")
-        exit(1)
+        raise IOError(f"Error: Could not write to file {file_path}.")
 
-except Exception as e:
-    print(f"An error occurred: {str(e)}")
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Error: No file path provided.")
+        sys.exit(1)
+
+    file_path = sys.argv[1]
+    encrypt_file(file_path)
